@@ -1,0 +1,51 @@
+
+<%= form_for @user, url: (@user.new_record? ? profiles_path : profile_path(@user)) do |f| %>
+  <% if @user.errors.any? %>
+    <div id="error_explanation">
+      <h2><%= pluralize(@user.errors.count, "error") %> prohibited this user from being saved:</h2>
+
+      <ul>
+      <% @user.errors.full_messages.each do |message| %>
+        <li><%= message %></li>
+      <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="panel panel-default">
+    <div class="panel-heading">
+      <h4><%= @user.new_record? ? 'New user' : 'Edit user' %></h4>
+    </div>
+    <div class="panel-body">
+      <div class="form-group">
+        <%= f.label :name %><br>
+        <%= f.text_field :name, autofocus: true, class: "form-control" %>
+      </div>
+      <div class="form-group">
+        <%= f.label :email %><br>
+        <%= f.text_field :email, autofocus: true, class: "form-control" %>
+      </div>
+      <div class="form-group">
+        <%= f.label :password %><br>
+        <%= f.password_field :password, autofocus: true, class: "form-control" %>
+      </div>
+      <div class="form-group">
+        <%= f.label :password_confirmation %><br>
+        <%= f.password_field :password_confirmation, autofocus: true, class: "form-control" %>
+      </div>
+      <% if current_user.is_admin %>
+      <div class="form-group">
+        <%= f.label :is_issuer %><br>
+        <%= f.check_box :is_issuer, autofocus: true %>
+      </div>
+      <div class="form-group">
+        <%= f.label :is_admin %><br>
+        <%= f.check_box :is_admin, autofocus: true %>
+      </div>
+      <% end %>
+      <div class="actions">
+        <%= f.submit class: "btn btn-primary" %>
+      </div>
+    </div>
+  </div>
+<% end %>

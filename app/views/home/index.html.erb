@@ -1,0 +1,12 @@
+
+<h1>Your Accounts</h1>
+
+<table>
+  <tr><th>Type</th><th>Account #</th></tr>
+  <% @accounts.each do |a| %>
+      <tr>
+        <td><%= a[:type] %></td>
+        <td><%= link_to a[:number], user_account [@user, a]  %></td>
+      </tr>
+  <% end %>
+</table>

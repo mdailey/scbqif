@@ -1,0 +1,15 @@
+# Read about fixtures at http://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  acct_type: Savings
+  number: 0123456
+  index_string: 0
+  user: one
+  sync_date: <%= Time.now.to_date - 1.day %>
+
+two:
+  acct_type: Checking
+  number: 01234567
+  index_string: 0
+  user: one
+  sync_date:

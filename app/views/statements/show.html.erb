@@ -1,0 +1,42 @@
+
+<div class="row">
+  <div class="col-xs-12">
+    <div class="panel panel-default">
+      <div class="panel-heading">
+        <h3><%= @statement.account.acct_type %> account <%= @statement.account.number %>,
+          <%= Date::MONTHNAMES[@statement.month] %> <%= @statement.year %> statement,
+          <%= @statement.fetch_date ? "last synced #{@statement.fetch_date}" : "never synced" %>
+          <%= link_to '(sync now)', sync_user_account_statement_path(@user, @account, @statement), method: :post %>
+        </h3>
+      </div>
+      <div class="panel-body">
+        <table id="statement-info" class="table table-striped">
+          <thead>
+            <tr>
+              <th>Date/time</th>
+              <th>Transaction type</th>
+              <th>Channel</th>
+              <th>Description</th>
+              <th>Check No.</th>
+              <th>Amount</th>
+              <th>New balance</th>
+            </tr>
+          </thead>
+          <% @statement.transactions.sort_by(&:timestamp).each do |trans| %>
+            <tr>
+              <td><%= trans.timestamp %></td>
+              <td><%= trans.trans_type %></td>
+              <td><%= trans.channel %></td>
+              <td><%= trans.description %></td>
+              <td><%= trans.check_no %></td>
+              <td><%= trans.amount %></td>
+              <td><%= trans.new_balance %></td>
+            </tr>
+          <% end %>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%= link_to 'Back to account', user_account_path(@user, @account), class: "btn btn-primary active", type: :button %>

@@ -1,0 +1,14 @@
+# Read about fixtures at http://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  fetch_date: <%= Time.now.to_date - 1.day %>
+  account: one
+  month: <%= (Time.now - 1.day).month %>
+  year: <%= (Time.now - 1.day).year %>
+
+
+two:
+  fetch_date: <%= Time.now.to_date - 1.day %>
+  account: one
+  month: <%= (Time.now - 1.day).month %>
+  year: <%= (Time.now - 1.day).year %>

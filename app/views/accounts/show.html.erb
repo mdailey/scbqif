@@ -1,0 +1,59 @@
+
+<div class="row">
+  <div class="col-xs-12">
+    <div class="panel panel-default">
+      <div class="panel-heading">
+        <h3>Account information</h3>
+      </div>
+      <div class="panel-body">
+        <table id="account-info" class="table table-striped">
+          <tr>
+            <td><b>Type:</b></td>
+            <td><%= @account.acct_type %></td>
+          </tr>
+          <tr>
+            <td><b>Number:</b></td>
+            <td><%= @account.number %></td>
+          </tr>
+          <tr>
+            <td><b>Index string:</b></td>
+            <td><%= @account.index_string %></td>
+          </tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+
+  <%= render partial: '/statements/list' %>
+
+  <div class="col-xs-3">
+    <div class="panel panel-default">
+      <div class="panel-heading">
+        <h4>Synchronize statement list</h4>
+      </div>
+      <div class="panel-body">
+        <p>Last sync: <%= @account.sync_date %></p>
+        <%= form_tag sync_user_account_statements_path(@user, @account) do |f| %>
+            <div class="form-group">
+              <%= label_tag :sync_username %>
+              <%= text_field_tag :sync_username, session[:sync_username], { class: 'form-control' } %>
+            </div>
+            <div class="form-group">
+              <%= label_tag :sync_password %>
+              <%= password_field_tag :sync_password, session[:sync_password], class: 'form-control' %>
+            </div>
+            <div class="actions">
+              <button type="submit" class="btn btn-primary active" type="button">
+                Sync Statements
+              </button>
+            </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%= link_to 'Back to account list', user_accounts_path(@user), class: "btn btn-primary active", type: :button %>

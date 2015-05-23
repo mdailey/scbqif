@@ -1,0 +1,59 @@
+<h1>Listing users</h1>
+
+<div class="row">
+
+  <div class="col-xs-12">
+
+    <table id="users" class="table table-striped">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Email</th>
+          <th class="text-center">Issuer?</th>
+          <th class="text-center">Admin?</th>
+          <th colspan="2"></th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <% @users.each do |user| %>
+          <tr>
+            <td><%= link_to user.name, profile_path(user) %></td>
+            <td><%= user.email %></td>
+            <td class="text-center">
+              <% if user.is_issuer %>
+                <i class="fa fa-check"></i>
+              <% else %>
+                <i class="fa fa-close"></i>
+              <% end %>
+            </td>
+            <td class="text-center">
+              <% if user.is_admin %>
+                <i class="fa fa-check"></i>
+              <% else %>
+                <i class="fa fa-close"></i>
+              <% end %>
+            </td>
+            <td>
+              <%= link_to edit_profile_path(user) do %>
+                <i class="fa fa-edit"></i>
+              <% end %>
+            </td>
+            <td>
+              <%= link_to profile_path(user), method: :delete, data: {confirm: 'Are you sure?'} do %>
+                <i class="fa fa-trash"></i>
+              <% end %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-xs-1">
+    <%= link_to 'New User', new_profile_path, class: "btn btn-primary active", type: :button %>
+  </div>
+</div>
