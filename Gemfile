@@ -1,3 +1,4 @@
+
 source 'https://rubygems.org'
 
 # Bundle edge Rails instead: gem 'rails', github: 'rails/rails'
@@ -43,3 +44,6 @@ gem 'qif'
 group :production do
   gem 'rails_12factor'
 end
+
+# Ruby version
+ruby '2.2.2'

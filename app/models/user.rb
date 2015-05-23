@@ -19,7 +19,7 @@ class User < ActiveRecord::Base
         acct_td = tr.search('td').select { |td| td.text =~ /XXX/ }.first
         acct_onclick = tr.search('a').first.attr('onclick')
         index_string = /AccBal\(\'(.*)\'\)/.match(acct_onclick)[1]
-        account = { acct_type: 'Savings', number: acct_td.text.strip, index_string: index_string }
+        account = { acct_type: 'Savings', number: mystrip(acct_td.text), index_string: index_string }
         self.merge_account account
       end
       if !tr.search('td').select { |td| td.text =~ /^\s*Credit Card\s*$/ and td.parent == tr }.empty?
@@ -42,6 +42,14 @@ class User < ActiveRecord::Base
     else
       matching_account.update account
     end
+  end
+
+  def mystrip(str)
+    str = str.strip
+    while str[str.length-1].ord == 160 do
+      str = str.slice(0,str.length-1)
+    end
+    return str
   end
 
 end

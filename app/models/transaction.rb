@@ -17,11 +17,9 @@ class Transaction < ActiveRecord::Base
       raise "unexpected deposit amount" unless amount > 0
     end
     new_balance = hash['Balance'].tr(',','')
-    pp hash
     trans = Transaction.new timestamp: timestamp, trans_type: hash['Transaction'], channel: hash['Channel'],
                             description: hash['Description'], check_no: hash['Chq No'], amount: amount,
                             new_balance: new_balance
-    pp trans
   end
 
 
