@@ -38,3 +38,8 @@ gem 'font-awesome-rails'
 
 # QIF export
 gem 'qif'
+
+# Heroku dependency
+group :production do
+  gem 'rails_12factor'
+end
