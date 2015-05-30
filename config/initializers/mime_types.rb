@@ -4,3 +4,4 @@
 # Mime::Type.register "text/richtext", :rtf
 
 Mime::Type.register "application/qif", :qif
+Mime::Type.register "application/ofx", :ofx

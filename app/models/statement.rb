@@ -1,4 +1,7 @@
+require 'strip'
+
 class Statement < ActiveRecord::Base
+  include Strip
 
   belongs_to :account
   has_many :transactions, dependent: :destroy, autosave: true
@@ -27,7 +30,7 @@ class Statement < ActiveRecord::Base
     fields = rows[0].search('td').collect { |cell| cell.text }
     self.transactions.clear
     for row_i in 1..rows.size-2 do
-      values = rows[row_i].search('td').collect { |cell| mystrip(cell.text) }
+      values = rows[row_i].search('td').collect { |cell| Strip::mystrip(cell.text) }
       self.transactions << Transaction.create_from_record(fields, values)
     end
     total = rows[rows.size-1].search('td').collect { |cell| cell.text }
@@ -52,14 +55,88 @@ class Statement < ActiveRecord::Base
     tempfile
   end
 
+  def to_ofx
+    require 'builder'
+    tempfile = Tempfile.new ['statement', '.ofx']
+    ofx = generate_ofx2_header
+    ofx << generate_ofx_body
+    tempfile.write ofx
+    tempfile.rewind
+    tempfile
+  end
+
   private
 
-  def mystrip(str)
-    return str unless str and str.length > 0
-    while str and str.length > 0 and str[0].ord == 160
-      str = str.slice(1,1000)
+  def closing_balance
+    transactions.sort_by(&:timestamp).last.new_balance
+  end
+
+  def closing_available
+    return closing_balance
+  end
+
+  # Taken from example in "bankjob" gem
+
+  def generate_ofx2_header
+    return <<-EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<?OFX OFXHEADER="200" SECURITY="NONE" OLDFILEUID="NONE" NEWFILEUID="NONE" VERSION="200"?>
+    EOF
+  end
+
+  def ofx_start_date
+    "#{Date::MONTHNAMES[self.month]} 1 #{self.year}".to_time.strftime '%Y%m%d%H%M%S'
+  end
+
+  def ofx_end_date
+    ("#{Date::MONTHNAMES[self.month]} 1 #{self.year}".to_time + 1.month - 1.second).strftime '%Y%m%d%H%M%S'
+  end
+
+  def generate_ofx_body
+    buf = ""
+    x = ::Builder::XmlMarkup.new(target: buf, indent: 2)
+    x.OFX do
+      # Bank Message Response
+      x.BANKMSGSRSV1 do
+        # Statement-transaction aggregate response
+        x.STMTTRNRS do
+          # Statement response
+          x.STMTRS do
+            # Currency
+            x.CURDEF 'THB'
+            x.BANKACCTFROM do
+              # Bank identifier
+              x.BANKID 'SCB'
+              # Account number
+              x.ACCTID self.account.number
+              # Account type
+              x.ACCTTYPE self.account.acct_type
+            end
+            # Transactions
+            x.BANKTRANLIST do
+              x.DTSTART ofx_start_date
+              x.DTEND ofx_end_date
+              transactions.each do |transaction|
+                buf << transaction.to_ofx
+              end
+            end
+            # The final balance at the end of the statement
+            x.LEDGERBAL do
+              # Balance amount
+              x.BALAMT closing_balance
+              # Balance date
+              x.DTASOF ofx_end_date
+            end
+            # Final available balance
+            x.AVAILBAL do
+              x.BALAMT closing_available
+              x.DTASOF ofx_end_date
+            end
+          end
+        end
+      end
     end
-    return str.strip
+    return buf
   end
 
 end

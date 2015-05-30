@@ -5,7 +5,7 @@ class StatementsController < ApplicationController
   before_action :set_account
   before_action :set_statement, only: [:show, :edit, :update, :destroy, :sync_one]
 
-  respond_to :html, :qif
+  respond_to :html, :qif, :ofx
 
   def sync_all
     parms = sync_params
@@ -25,9 +25,14 @@ class StatementsController < ApplicationController
   end
 
   def show
-    respond_to do |format|
-      format.qif { send_file @statement.to_qif.path }
-      format.html { respond_with(@statement) }
+    if @statement.fetch_date.nil? or @statement.transactions.length == 0
+      redirect_to user_account_path(@user, @account), notice: 'No transactions'
+    else
+      respond_to do |format|
+        format.qif { send_file @statement.to_qif.path }
+        format.ofx { send_file @statement.to_ofx.path }
+        format.html { respond_with(@statement) }
+      end
     end
   end
 
