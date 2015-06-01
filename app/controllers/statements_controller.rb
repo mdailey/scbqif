@@ -20,8 +20,13 @@ class StatementsController < ApplicationController
     session[:sync_username] ||= parms[:sync_username]
     session[:sync_password] ||= parms[:sync_password]
     sync_parms = { sync_username: session[:sync_username], sync_password: session[:sync_password], bank_session_key: session[:bank_session_key] }
-    session[:bank_session_key] = @statement.sync_transactions(sync_parms)
-    redirect_to user_account_statement_path(@user, @account, @statement), notice: 'Transactions successfully synchronized.'
+    result_hash = @statement.sync_transactions(sync_parms)
+    if result_hash[:error]
+      redirect_to user_account_path(@user, @account), alert: result_hash[:error]
+    else
+      session[:bank_session_key] = result_hash[:session_key]
+      redirect_to user_account_statement_path(@user, @account, @statement), notice: 'Transactions successfully synchronized.'
+    end
   end
 
   def show

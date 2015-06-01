@@ -23,11 +23,22 @@ class Account < ActiveRecord::Base
       case self.acct_type
         when 'Credit Card'
           # Sign on to e-billing TODO: this takes a few seconds, would be good to give some feedback to user
-          page = agent.post "https://www.scbeasy.com/v1.4/site/Library/epp_signon.asp",
-                            "CARD" => self.index_string,
-                            "SESSIONEASY" => session_key,
-                            "LANG" => "E",
-                            "COMMAND" => "ebill"
+          page = nil
+          begin
+            page = agent.post "https://www.scbeasy.com/v1.4/site/Library/epp_signon.asp",
+                              "CARD" => self.index_string,
+                              "SESSIONEASY" => session_key,
+                              "LANG" => "E",
+                              "COMMAND" => "ebill"
+          rescue SocketError
+            return { error: 'Could not connect to bank server' }
+          end
+          pp page
+          if page.body =~ /Sorry, you cannot do this transaction at the moment./ and count <= 2
+            session_key = nil
+            page = nil
+            next
+          end
           if page.forms and page.forms.first and page.forms.first.name == "ERROR_SCODE" and count <= 2
             session_key = nil
             page = nil

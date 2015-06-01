@@ -23,11 +23,22 @@ class Statement < ActiveRecord::Base
       case self.account.acct_type
         when 'Credit Card'
           # Sign on to e-billing TODO: this takes a few seconds, would be good to give some feedback to user
-          page = agent.post "https://www.scbeasy.com/v1.4/site/Library/epp_signon.asp",
-                            "CARD" => self.index_string,
-                            "SESSIONEASY" => session_key,
-                            "LANG" => "E",
-                            "COMMAND" => "ebill"
+          page = nil
+          begin
+            page = agent.post "https://www.scbeasy.com/v1.4/site/Library/epp_signon.asp",
+                              "CARD" => self.index_string,
+                              "SESSIONEASY" => session_key,
+                              "LANG" => "E",
+                              "COMMAND" => "ebill"
+          rescue SocketError
+            return { error: 'Could not connect to bank server' }
+          end
+          pp page
+          if page.body =~ /Sorry, you cannot do this transaction at the moment./ and count <= 2
+            session_key = nil
+            page = nil
+            next
+          end
           if page.forms and page.forms.first and page.forms.first.name == "ERROR_SCODE" and count <= 2
             session_key = nil
             page = nil
@@ -37,6 +48,8 @@ class Statement < ActiveRecord::Base
           page = agent.post "https://ebill.scbeasy.com/scbb2c/Dispatcher?controllerName=AccountSummaryController&commandName=Initial",
                             "Mask" => "1",
                             "SESSIONEASY" => session_key
+
+          return { error: "Could not authenticate - retry username/password?" } if page.title == "noncompleate"
 
           # Get the summary for default statement
           page = agent.post "https://ebill.scbeasy.com/scbb2c/Dispatcher",
@@ -58,12 +71,11 @@ class Statement < ActiveRecord::Base
                             "stateName" => "",
                             "viewName" => "B2CAccountSummary"
           select = page.search('select.SelectBox[name="StatementIndex"]')
-          pp select
           opts = select.css("option").select do |opt|
             pat = "0*#{self.day}\/0*#{self.month}\/#{self.year}"
             /^#{pat}$/.match(opt.text)
           end
-          return unless opts.size == 1
+          return { error: "Statement not found" } unless opts.size == 1
           stmt_index = opts.first.attr('value')
 
           # Get the summary for this statement
@@ -91,12 +103,13 @@ class Statement < ActiveRecord::Base
           tables = page.search('table.TableBasic[width="743"]').select do |table|
             table.text =~ /TRANSACTION USED THIS PERIOD/ and !(table.search('tr').first.attr('style') == "height:450px")
           end
-          return unless tables.size == 1
+          return { error: "Statement data not found" } unless tables.size == 1
           rows = tables.first.search('tr')
           start_processing = false
           trans_date = nil
           payee = nil
           amount = nil
+          trans_type = nil
           self.transactions.clear
           rows.each do |row|
             if row.text =~ /TRANSACTION USED THIS PERIOD/
@@ -105,21 +118,30 @@ class Statement < ActiveRecord::Base
             end
             next unless start_processing
             cells = row.search('td')
-            break if cells[1].text =~ /THIS PERIOD BALANCE/
             if cells[0].text !~ /^[0-9]*\/[0-9]*$/
               next unless payee =~ /CREDIT VOUCHER/
             end
             if payee =~ /CREDIT VOUCHER/
               payee = "#{payee} #{cells[2].text}"
-              amount = "-#{amount.gsub(/-$/,'').strip}"
+              amount = "#{amount.gsub(/^-/,'').strip}"
+              trans_type = 'credit'
             else
               trans_date = cells[1].text
               payee = cells[2].text
-              amount = cells[4].text.gsub(/,/, '')
+              amount = "-#{cells[4].text.gsub(/,/, '').gsub('-$','').strip}"
+              trans_type = 'debit'
             end
             next if payee =~ /^CREDIT VOUCHER$/
-            next if payee =~ /PAYMENT RECEIVED/
-            self.transactions << Transaction.new(timestamp: "#{trans_date}/#{self.year}".to_datetime, description: payee, amount: amount.to_d)
+            if payee =~ /PAYMENT RECEIVED/
+              amount = amount.gsub(/^-/,'')
+              trans_type = 'credit'
+            end
+            self.transactions << Transaction.new(
+                timestamp: "#{trans_date}/#{self.year}".to_datetime,
+                description: payee,
+                amount: amount.to_d,
+                trans_type: trans_type
+            )
             payee = nil
           end
         else
@@ -131,7 +153,7 @@ class Statement < ActiveRecord::Base
             page = nil
             next
           end
-          return unless page
+          return { error: "Could not authenticate - retry username/password?" } if page.nil?
           tables = page.search('table[border="1"]')
           rows = tables.first.search('tr')
           fields = rows[0].search('td').collect { |cell| cell.text }
@@ -145,7 +167,7 @@ class Statement < ActiveRecord::Base
     end
     self.fetch_date = Time.now.to_date
     self.save!
-    return session_key
+    return { session_key: session_key }
   end
 
   def to_qif
