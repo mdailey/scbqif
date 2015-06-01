@@ -24,6 +24,9 @@
               </td>
               <td>
                 <%= Date::MONTHNAMES[statement.month] %>
+                <% if statement.day %>
+                  <%= statement.day %>
+                <% end %>
               </td>
               <%= raw fetch_date_td_tag(statement) %>
               <td>
