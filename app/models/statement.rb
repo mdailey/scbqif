@@ -94,6 +94,9 @@ class Statement < ActiveRecord::Base
           return unless tables.size == 1
           rows = tables.first.search('tr')
           start_processing = false
+          trans_date = nil
+          payee = nil
+          amount = nil
           self.transactions.clear
           rows.each do |row|
             if row.text =~ /TRANSACTION USED THIS PERIOD/
@@ -102,12 +105,22 @@ class Statement < ActiveRecord::Base
             end
             next unless start_processing
             cells = row.search('td')
-            break if cells[0].text !~ /^[0-9]*\/[0-9]*$/
-            trans_date = cells[1].text
-            payee = cells[2].text
-            amount = cells[4].text.gsub(/,/, '')
-            puts "Transaction date: #{trans_date} payee: #{payee} amouont: #{amount}"
-            self.transactions << Transaction.create(timestamp: "#{trans_date}/#{self.year}".to_datetime, description: payee, amount: amount.to_d)
+            break if cells[1].text =~ /THIS PERIOD BALANCE/
+            if cells[0].text !~ /^[0-9]*\/[0-9]*$/
+              next unless payee =~ /CREDIT VOUCHER/
+            end
+            if payee =~ /CREDIT VOUCHER/
+              payee = "#{payee} #{cells[2].text}"
+              amount = "-#{amount.gsub(/-$/,'').strip}"
+            else
+              trans_date = cells[1].text
+              payee = cells[2].text
+              amount = cells[4].text.gsub(/,/, '')
+            end
+            next if payee =~ /^CREDIT VOUCHER$/
+            next if payee =~ /PAYMENT RECEIVED/
+            self.transactions << Transaction.new(timestamp: "#{trans_date}/#{self.year}".to_datetime, description: payee, amount: amount.to_d)
+            payee = nil
           end
         else
           # Normal bank account
