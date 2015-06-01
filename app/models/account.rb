@@ -32,6 +32,11 @@ class Account < ActiveRecord::Base
                               "COMMAND" => "ebill"
           rescue SocketError
             return { error: 'Could not connect to bank server' }
+          rescue RedirectLimitReachedError
+            page = nil
+            session_key = nil
+            return { error: 'Invalid signon' } if count > 2
+            next
           end
           pp page
           if page.body =~ /Sorry, you cannot do this transaction at the moment./ and count <= 2
